@@ -7,7 +7,7 @@
 ## 📁 Repo Contents
 
 - `xsscraft.py` – Main Python script to perform the fuzzing.
-- `xss.txt` – Sample wordlist of common XSS payloads.
+- `payloads.txt` – Sample wordlist of common XSS payloads.
 
 ---
 
@@ -43,7 +43,7 @@ Follow the prompts:
 
 Enter the target URL with FUZZ
 
-Enter the path to your XSS payload wordlist (e.g., xss.txt)
+Enter the path to your XSS payload wordlist (e.g., payloads.txt)
 
 Choose whether to save reflected (vulnerable) URLs to a file
 
