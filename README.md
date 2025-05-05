@@ -21,7 +21,7 @@
 ## 🔧 Installation
 
 ```bash
-git clone https://github.com/yourusername/xsscraft.git
+git clone https://github.com/noface4823/xsscraft.git
 cd xsscraft
 pip install colorama
 🚀 How to Use
