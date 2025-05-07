@@ -1,15 +1,31 @@
-import requests
-import random
-import time
-import os
 from colorama import Fore, Style, init
+import random
+import requests
+import re
+import sys
+import argparse
+import os
 
-# Initialize colorama
+# Initialize Colorama
 init(autoreset=True)
 
-# List of commonly used User-Agent strings (you can add more if needed)
-USER_AGENTS = [
-    # Desktop browsers
+# Banner
+banner = f"""{Fore.RED}{Style.BRIGHT}
+██╗  ██╗███████╗███████╗ ██████╗██████╗  █████╗ ███████╗████████╗
+╚██╗██╔╝██╔════╝██╔════╝██╔════╝██╔══██╗██╔══██╗██╔════╝╚══██╔══╝
+ ╚███╔╝ ███████╗███████╗██║     ██████╔╝███████║█████╗     ██║
+ ██╔██╗ ╚════██║╚════██║██║     ██╔══██╗██╔══██║██╔══╝     ██║
+██╔╝ ██╗███████║███████║╚██████╗██║  ██║██║  ██║██║        ██║
+╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝        ╚═╝
+
+             {Fore.YELLOW}XSS Reflection Fuzzer (noface){Style.RESET_ALL}
+"""
+
+print(banner)
+
+# List of user agents (you can add more user agents here)
+user_agents = [
+ # Desktop browsers
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
     "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:55.0) Gecko/20100101 Firefox/55.0",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36",
@@ -45,84 +61,133 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36 Edge/90.0.818.56",
 ]
 
+# Function to get payloads from a file
+def get_payloads(file_path):
+    with open(file_path, 'r') as f:
+        return [line.strip() for line in f if line.strip()]
 
-# Bypass headers for WAFs
-WAF_BYPASS_HEADERS = {
-    "User-Agent": random.choice(USER_AGENTS),  # Random User-Agent
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Cache-Control": "no-cache",
-    "Connection": "keep-alive",
-    "Host": "gipe.ac.in",  # Change this to the target domain
-    "Pragma": "no-cache",
-    "Upgrade-Insecure-Requests": "1",
-    "X-Requested-With": "XMLHttpRequest",  # Adding common header to avoid bot detection
-    "DNT": "1",  # Do Not Track header
-    "X-Forwarded-For": "123.123.123.123",  # Spoof IP for further obfuscation
-}
-
-def banner():
-    print(Fore.CYAN + Style.BRIGHT + r"""
-   __   __ _____ _____     _____     _                 
- __  ______ ____    _____ _   _ _______________ ____  
- \ \/ / ___/ ___|  |  ___| | | |__  /__  / ____|  _ \ 
-  \  /\___ \___ \  | |_  | | | | / /  / /|  _| | |_) |
-  /  \ ___) |__) | |  _| | |_| |/ /_ / /_| |___|  _ < 
- /_/\_\____/____/  |_|    \___//____/____|_____|_| \_\
-             XSS Reflection Fuzzer (noface)
-    """ + Style.RESET_ALL)
-
-def main():
-    banner()
-
-    # Ask for URL
-    url_template = input(Fore.YELLOW + "[?] Enter URL with FUZZ (e.g., https://site.com/search/FUZZ): " + Style.RESET_ALL).strip()
-    if "FUZZ" not in url_template:
-        print(Fore.RED + "[!] URL must contain 'FUZZ'" + Style.RESET_ALL)
-        return
-
-    # Ask for payload list
-    wordlist_path = input(Fore.YELLOW + "[?] Enter path to XSS payload wordlist: " + Style.RESET_ALL).strip()
-    if not os.path.isfile(wordlist_path):
-        print(Fore.RED + "[!] Wordlist file not found." + Style.RESET_ALL)
-        return
-
-    # Ask to save vulnerable URLs
-    save_results = input(Fore.YELLOW + "[?] Do you want to save reflected URLs to a file? (y/n): " + Style.RESET_ALL).strip().lower()
-    output_file = ""
-    if save_results == "y":
-        output_file = input(Fore.YELLOW + "[?] Enter output filename (e.g., reflected.txt): " + Style.RESET_ALL).strip()
-        open(output_file, 'w').close()  # Clear the file first
-
-    print(Fore.CYAN + "\n[*] Starting fuzzing...\n")
-
-    with open(wordlist_path, "r", encoding="utf-8") as f:
-        payloads = [line.strip() for line in f if line.strip()]
-
-    for i, payload in enumerate(payloads, 1):
-        fuzzed_url = url_template.replace("FUZZ", requests.utils.quote(payload))
-        
-        # Add the headers with random User-Agent and WAF bypass
-        headers = WAF_BYPASS_HEADERS.copy()
-        headers["User-Agent"] = random.choice(USER_AGENTS)  # Randomize the User-Agent
-
+# Function to fuzz GET requests
+def fuzz_get(url_template, payloads, save_to_file, file_name):
+    print(Fore.CYAN + "\n[+] Starting GET fuzzing...")
+    reflected_payloads = []
+    for payload in payloads:
+        target_url = url_template.replace("FUZZ", payload)
+        headers = {'User-Agent': random.choice(user_agents)}
         try:
-            response = requests.get(fuzzed_url, headers=headers, timeout=10)
+            response = requests.get(target_url, headers=headers)
             if payload in response.text:
-                print(Fore.RED + Style.BRIGHT + f"[{i:03}] VULNERABLE   | Payload reflected | {payload}")
-                print(Fore.RED + Style.BRIGHT + f"      -> {fuzzed_url}\n")
-                if output_file:
-                    with open(output_file, 'a') as out:
-                        out.write(f"{fuzzed_url}  # {payload}\n")
+                print(Fore.RED + Style.BRIGHT + f"[✔] Reflected payload: {payload}")
+                reflected_payloads.append(payload)
             else:
-                print(Fore.GREEN + Style.BRIGHT + f"[{i:03}] NOT VULNERABLE | No reflection     | {payload}")
+                print(Fore.LIGHTBLACK_EX + Style.BRIGHT + f"[x] Not reflected: {payload}")
         except Exception as e:
-            print(Fore.RED + f"[!] Error with payload [{payload}]: {e}")
+            print(f"[!] Error with payload {payload}: {e}")
 
-    print(Fore.CYAN + "\n[*] Fuzzing completed.")
-    if output_file:
-        print(Fore.CYAN + f"[*] Reflected URLs saved to: {output_file}\n")
+    if save_to_file:
+        with open(file_name, "w") as f:
+            for payload in reflected_payloads:
+                f.write(payload + "\n")
+        print(f"[+] Reflected payloads saved to {file_name}")
+
+# Function to parse raw POST request file
+def parse_raw_post_file(file_path):
+    with open(file_path, 'r') as f:
+        lines = [line.rstrip() for line in f.readlines()]
+
+    method_line = lines[0]
+    headers = {}
+    data = ""
+    is_body = False
+
+    for line in lines[1:]:
+        if line == "":
+            is_body = True
+            continue
+        if not is_body:
+            key, val = line.split(":", 1)
+            headers[key.strip()] = val.strip()
+        else:
+            data += line + "&" if data else line
+
+    path = method_line.split(" ")[1]
+    host = headers.get("Host", "")
+    url = f"http://{host}{path}"
+    return url, headers, data
+
+# Function to fuzz POST requests
+def fuzz_post(raw_file, payloads, save_to_file, file_name):
+    print(Fore.CYAN + "\n[+] Parsing raw POST file...")
+    reflected_payloads = []
+    try:
+        url, headers, data_template = parse_raw_post_file(raw_file)
+    except Exception as e:
+        print(f"[!] Error parsing POST file: {e}")
+        return
+
+    # Custom headers to bypass WAF
+    headers.update({
+        'User-Agent': random.choice(user_agents),
+        'X-Forwarded-For': '192.168.1.1',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Custom-Header': 'CustomHeaderValue',
+        'Referer': 'http://example.com',
+        'Origin': 'http://example.com',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
+    })
+
+    print(f"[+] Target URL: {url}")
+    print(Fore.CYAN + "[+] Starting POST fuzzing...")
+
+    for payload in payloads:
+        data = data_template.replace("FUZZ", payload)
+        headers['User-Agent'] = random.choice(user_agents)
+        # Add custom headers to bypass WAF
+        headers['X-Custom-Header'] = 'CustomHeaderValue'
+        try:
+            response = requests.post(url, data=data, headers=headers)
+            if payload in response.text:
+                print(Fore.RED + Style.BRIGHT + f"[✔] Reflected payload: {payload}")
+                reflected_payloads.append(payload)
+            else:
+                print(Fore.LIGHTBLACK_EX + Style.BRIGHT + f"[x] Not reflected: {payload}")
+        except Exception as e:
+            print(f"[!] Error with payload {payload}: {e}")
+
+    if save_to_file:
+        with open(file_name, "w") as f:
+            for payload in reflected_payloads:
+                f.write(payload + "\n")
+        print(f"[+] Reflected payloads saved to {file_name}")
+
+# Main function
+def main():
+    print(Fore.YELLOW + "\n=== Simple GET/POST Fuzzer ===")
+    req_type = input("Enter request type (GET/POST): ").strip().upper()
+
+    # Ask if the user wants to save reflected payloads to a file
+    save_to_file = input("Do you want to save reflected payloads to a file? (yes/no): ").strip().lower() == 'yes'
+
+    # Ask for file name if user wants to save payloads
+    file_name = ""
+    if save_to_file:
+        file_name = input("Enter the name of the file to save the reflected payloads: ").strip()
+
+    if req_type == "GET":
+        url_template = input("Enter GET URL (use FUZZ where payloads go): ").strip()
+        payload_file = input("Enter path to payload list file: ").strip()
+        payloads = get_payloads(payload_file)
+        fuzz_get(url_template, payloads, save_to_file, file_name)
+
+    elif req_type == "POST":
+        raw_post_file = input("Enter path to raw POST request file (with FUZZ in body): ").strip()
+        payload_file = input("Enter path to payload list file: ").strip()
+        payloads = get_payloads(payload_file)
+        fuzz_post(raw_post_file, payloads, save_to_file, file_name)
+
+    else:
+        print(Fore.RED + "[!] Invalid request type. Use GET or POST.")
 
 if __name__ == "__main__":
     main()
+
