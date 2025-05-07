@@ -18,7 +18,7 @@ banner = f"""{Fore.RED}{Style.BRIGHT}
 ██╔╝ ██╗███████║███████║╚██████╗██║  ██║██║  ██║██║        ██║
 ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝        ╚═╝
 
-             {Fore.YELLOW}XSS Reflection Fuzzer (noface){Style.RESET_ALL}
+             {Fore.YELLOW}- Author : noface{Style.RESET_ALL}
 """
 
 print(banner)
