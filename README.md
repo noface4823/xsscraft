@@ -1,39 +1,61 @@
 # XSSCraft
 
-**XSSCraft** is a lightweight and colorful reflected XSS fuzzing tool. It injects custom payloads from a wordlist into a target URL (using a `FUZZ` marker) and checks if the payload is reflected in the server's response — helping identify reflected Cross-Site Scripting vulnerabilities quickly and efficiently.
+> **XSS Reflection Fuzzer** by `noface`  
+> `██╗  ██╗███████╗███████╗ ██████╗██████╗  █████╗ ███████╗████████╗`  
+> `╚██╗██╔╝██╔════╝██╔════╝██╔════╝██╔══██╗██╔══██╗██╔════╝╚══██╔══╝`  
+> ` ╚███╔╝ ███████╗███████╗██║     ██████╔╝███████║█████╗     ██║   `  
+> ` ██╔██╗ ╚════██║╚════██║██║     ██╔══██╗██╔══██║██╔══╝     ██║   `  
+> `██╔╝ ██╗███████║███████║╚██████╗██║  ██║██║  ██║██║        ██║   `  
+> `╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝        ╚═╝   `
+
+## 🔍 Overview
+
+**XSSCraft** is a lightweight but powerful XSS reflection fuzzing tool that supports both **GET** and **POST** based fuzzing using raw HTTP requests and a payload list.
+
+It is designed to help penetration testers and bug bounty hunters test for reflected XSS in web applications by automating fuzzing and checking for reflected payloads.
 
 ---
 
-## 📁 Repo Contents
+## 🚀 Features
 
-- `xsscraft.py` – Main Python script to perform the fuzzing.
-- `payloads.txt` – Sample wordlist of common XSS payloads.
-
----
-
-## ⚙️ Requirements
-
-- Python 3.x
-- `colorama` module for colored output (install instructions below)
+- ✅ Supports both **GET** and **POST** request fuzzing
+- 📝 Uses **raw request files** with `FUZZ` markers to inject payloads
+- 📁 Saves **reflected payloads** to a specified output file
+- 🧪 Clean terminal output with status marking:
+  - ✔ Reflected
+  - ❌ Not reflected
+- 📦 Simple installation and usage with no external modules beyond `requests`
 
 ---
 
-## 🔧 Installation
+## 🛠 Installation
+
+1. **Clone the repository**
 
 ```bash
-git clone https://github.com/noface4823/xsscraft.git
+git clone https://github.com/yourusername/xsscraft.git
 cd xsscraft
-pip install colorama
-🚀 How to Use
-Prepare your URL:
-Make sure your target URL includes the keyword FUZZ where the payload should be injected.
-Example:
+Install dependencies
 
-arduino
+bash
 Copy
 Edit
-https://example.com/search/FUZZ
-Run the tool:
+pip install -r requirements.txt
+✅ Only one dependency: requests
+
+📂 File Structure
+bash
+Copy
+Edit
+.
+├── payloads.txt           # Sample payload list
+├── req.txt                # Sample raw request with FUZZ
+├── test3.py               # Main fuzzer script
+├── requirements.txt       # Required Python packages
+├── README.md              # You're here!
+
+▶️ Usage
+Run the tool with:
 
 bash
 Copy
@@ -41,27 +63,82 @@ Edit
 python3 xsscraft.py
 Follow the prompts:
 
-Enter the target URL with FUZZ
+1. Select Request Type
+pgsql
+Copy
+Edit
+Enter request type (GET/POST):
+GET: For fuzzing GET parameters
 
-Enter the path to your XSS payload wordlist (e.g., payloads.txt)
+POST: For fuzzing raw body parameters
 
-Choose whether to save reflected (vulnerable) URLs to a file
+2. Save Results?
+pgsql
+Copy
+Edit
+Do you want to save reflected payloads to a file? (yes/no):
+Choose yes if you want the results saved
 
-If yes, enter the output filename
+3. Specify File Name
+css
+Copy
+Edit
+Enter the name of the file to save the reflected payloads:
+Example: out.txt
 
-🎯 Sample Output
+4. Load Raw Request File
+Burp Suite
+Copy
+Edit
+Enter path to raw POST request file (with FUZZ in body):
+Use a file like req.txt with FUZZ where payloads should be inserted.
+
+Example POST raw request (req.txt):
+
+http
+Copy
+Edit
+POST /search.jsp HTTP/1.1
+Host: demo.testfire.net
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 21
+
+query=FUZZ&submit=Search
+5. Load Payload List
+css
+Copy
+Edit
+Enter path to payload list file:
+Example: payloads.txt, payloads2.txt
+
+✅ Output Example
+Terminal output:
+
 javascript
 Copy
 Edit
-[001] NOT VULNERABLE | No reflection     | <script>alert(1)</script>
-[002] VULNERABLE     | Payload reflected | <img src=x onerror=alert(1)>
-      -> https://target.com/search/%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E
-✅ Green = Payload not reflected (safe)
+[✔] Reflected payload: ><script>alert(123)</script>
+[x] Not reflected: <script>alert(1)</script>
+Saved to out.txt if you chose to store them.
 
-🔴 Red = Payload reflected (potential XSS)
+📌 Tips
+Make sure your raw request files are accurate.
 
-🧪 Wordlist
-You can use the provided xss.txt or plug in your own custom payload list.
+Always use FUZZ in your raw request to indicate where payloads go.
 
-💡 Tip
-The tool uses simple reflection matching, so if the payload appears exactly in the response body, it will be marked as reflected.
+Payloads must be XSS vectors you wish to test.
+
+If testing POST, ensure Content-Length is approximate or disable checking server-side.
+
+💡 Contributing
+Feel free to fork and enhance the tool:
+
+Add DOM-based fuzzing support
+
+Improve reflection detection (JS parsing, regex, etc.)
+
+Add proxy support (Burp/ZAP)
+
+🧑‍💻 Author
+noface
+Red Teamer | Bug Hunter | Cybersecurity Researcher
