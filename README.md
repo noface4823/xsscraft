@@ -132,11 +132,7 @@ If testing POST, ensure Content-Length is approximate or disable checking server
 
 💡 Contributing
 Feel free to fork and enhance the tool:
-
-Add DOM-based fuzzing support
-
-Improve reflection detection (JS parsing, regex, etc.)
-
+NOTE : use main.py to reduse false positive (slow)
 Add proxy support (Burp/ZAP)
 
 🧑‍💻 Author
